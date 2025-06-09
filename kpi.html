@@ -928,6 +928,220 @@
                     }
                 }
             });
+
+            // HR图表点击事件
+            hrChart.canvas.onclick = function(evt) {
+                const points = Chart.getElementsAtEventForMode(hrChart, evt, 'nearest', { intersect: true }, true);
+                
+                if (points.length) {
+                    const firstPoint = points[0];
+                    const label = hrChart.data.labels[firstPoint.index];
+                    
+                    console.log('点击的柱体:', label); // 调试用
+                    
+                    // 清空表格
+                    const hrTableBody = document.querySelector('#hrModal .table-body');
+                    hrTableBody.innerHTML = '';
+                    
+                    let modalTitle = '';
+                    let tableHeaders = '';
+                    let data = [];
+                    
+                    switch(label) {
+                        case '业务人数':
+                            modalTitle = '业务人员信息';
+                            tableHeaders = `
+                                <tr>
+                                    <th>姓名</th>
+                                    <th>工号</th>
+                                    <th>部门</th>
+                                    <th>职位</th>
+                                    <th>入职时间</th>
+                                    <th>状态</th>
+                                </tr>
+                            `;
+                            data = [
+                                { name: '张三', id: 'E001', dept: '销售部S1', position: '销售专员', joinDate: '2023-01-15', status: '在职' },
+                                { name: '李四', id: 'E002', dept: '销售部S2', position: '销售经理', joinDate: '2022-08-20', status: '在职' },
+                                { name: '王五', id: 'E003', dept: '销售部S3', position: '销售专员', joinDate: '2023-03-10', status: '在职' },
+                                { name: '赵六', id: 'E004', dept: '销售部S4', position: '销售主管', joinDate: '2022-12-05', status: '在职' },
+                                { name: '孙七', id: 'E005', dept: '销售部S5', position: '销售专员', joinDate: '2023-02-28', status: '在职' }
+                            ];
+                            data.forEach(item => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${item.name}</td>
+                                    <td>${item.id}</td>
+                                    <td>${item.dept}</td>
+                                    <td>${item.position}</td>
+                                    <td>${item.joinDate}</td>
+                                    <td><span class="status-active">${item.status}</span></td>
+                                `;
+                                hrTableBody.appendChild(row);
+                            });
+                            break;
+                            
+                        case '增员/月':
+                            modalTitle = '本月新增人员';
+                            tableHeaders = `
+                                <tr>
+                                    <th>姓名</th>
+                                    <th>工号</th>
+                                    <th>部门</th>
+                                    <th>职位</th>
+                                    <th>入职时间</th>
+                                </tr>
+                            `;
+                            data = [
+                                { name: '新员工A', id: 'E101', dept: '销售部S1', position: '销售专员', joinDate: '2024-01-05' },
+                                { name: '新员工B', id: 'E102', dept: '销售部S3', position: '销售专员', joinDate: '2024-01-12' },
+                                { name: '新员工C', id: 'E103', dept: '销售部S5', position: '销售助理', joinDate: '2024-01-18' }
+                            ];
+                            data.forEach(item => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${item.name}</td>
+                                    <td>${item.id}</td>
+                                    <td>${item.dept}</td>
+                                    <td>${item.position}</td>
+                                    <td>${item.joinDate}</td>
+                                `;
+                                hrTableBody.appendChild(row);
+                            });
+                            break;
+                            
+                        case '减员/月':
+                            modalTitle = '本月减员情况';
+                            tableHeaders = `
+                                <tr>
+                                    <th>姓名</th>
+                                    <th>工号</th>
+                                    <th>部门</th>
+                                    <th>离职时间</th>
+                                    <th>离职原因</th>
+                                </tr>
+                            `;
+                            data = [
+                                { name: '离职员工A', id: 'E201', dept: '销售部S2', leaveDate: '2024-01-08', reason: '个人发展' },
+                                { name: '离职员工B', id: 'E202', dept: '销售部S4', leaveDate: '2024-01-15', reason: '家庭原因' }
+                            ];
+                            data.forEach(item => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${item.name}</td>
+                                    <td>${item.id}</td>
+                                    <td>${item.dept}</td>
+                                    <td>${item.leaveDate}</td>
+                                    <td>${item.reason}</td>
+                                `;
+                                hrTableBody.appendChild(row);
+                            });
+                            break;
+                            
+                        case '晋级/月':
+                            modalTitle = '本月技能考试晋级';
+                            tableHeaders = `
+                                <tr>
+                                    <th>姓名</th>
+                                    <th>工号</th>
+                                    <th>部门</th>
+                                    <th>原等级</th>
+                                    <th>新等级</th>
+                                    <th>考试时间</th>
+                                    <th>考试成绩</th>
+                                </tr>
+                            `;
+                            data = [
+                                { name: '晋级员工A', id: 'E301', dept: '销售部S1', oldLevel: '初级', newLevel: '中级', examDate: '2024-01-10', score: '85分' },
+                                { name: '晋级员工B', id: 'E302', dept: '销售部S3', oldLevel: '中级', newLevel: '高级', examDate: '2024-01-10', score: '92分' },
+                                { name: '晋级员工C', id: 'E303', dept: '销售部S6', oldLevel: '初级', newLevel: '中级', examDate: '2024-01-17', score: '88分' }
+                            ];
+                            data.forEach(item => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${item.name}</td>
+                                    <td>${item.id}</td>
+                                    <td>${item.dept}</td>
+                                    <td>${item.oldLevel}</td>
+                                    <td><span class="status-success">${item.newLevel}</span></td>
+                                    <td>${item.examDate}</td>
+                                    <td>${item.score}</td>
+                                `;
+                                hrTableBody.appendChild(row);
+                            });
+                            break;
+                            
+                        case '降级/月':
+                            modalTitle = '本月技能考试降级';
+                            tableHeaders = `
+                                <tr>
+                                    <th>姓名</th>
+                                    <th>工号</th>
+                                    <th>部门</th>
+                                    <th>原等级</th>
+                                    <th>新等级</th>
+                                    <th>考试时间</th>
+                                    <th>考试成绩</th>
+                                </tr>
+                            `;
+                            data = [
+                                { name: '降级员工A', id: 'E401', dept: '销售部S2', oldLevel: '中级', newLevel: '初级', examDate: '2024-01-10', score: '58分' }
+                            ];
+                            data.forEach(item => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${item.name}</td>
+                                    <td>${item.id}</td>
+                                    <td>${item.dept}</td>
+                                    <td>${item.oldLevel}</td>
+                                    <td><span class="status-warning">${item.newLevel}</span></td>
+                                    <td>${item.examDate}</td>
+                                    <td>${item.score}</td>
+                                `;
+                                hrTableBody.appendChild(row);
+                            });
+                            break;
+                            
+                        case '培训/月':
+                            modalTitle = '培训通知信息';
+                            tableHeaders = `
+                                <tr>
+                                    <th>培训主题</th>
+                                    <th>培训日期</th>
+                                    <th>讲师</th>
+                                    <th>参与人数</th>
+                                    <th>培训时长</th>
+                                    <th>状态</th>
+                                </tr>
+                            `;
+                            data = [
+                                { title: '销售技巧提升', date: '2024-01-15', instructor: '王讲师', participants: 25, duration: '2小时', status: '已完成' },
+                                { title: '客户关系管理', date: '2024-01-22', instructor: '李讲师', participants: 30, duration: '3小时', status: '进行中' },
+                                { title: '产品知识培训', date: '2024-01-28', instructor: '张讲师', participants: 20, duration: '1.5小时', status: '待开始' }
+                            ];
+                            data.forEach(item => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${item.title}</td>
+                                    <td>${item.date}</td>
+                                    <td>${item.instructor}</td>
+                                    <td>${item.participants}人</td>
+                                    <td>${item.duration}</td>
+                                    <td><span class="status-${item.status === '已完成' ? 'success' : item.status === '进行中' ? 'warning' : 'info'}">${item.status}</span></td>
+                                `;
+                                hrTableBody.appendChild(row);
+                            });
+                            break;
+                    }
+                    
+                    // 设置弹窗标题和表头
+                    document.querySelector('#hrModal h3').textContent = modalTitle;
+                    hrTableBody.insertAdjacentHTML('afterbegin', tableHeaders);
+                    
+                    // 显示弹窗
+                    document.getElementById('hrModal').style.display = 'flex';
+                }
+            };
         }
 
         // 初始化弹窗
