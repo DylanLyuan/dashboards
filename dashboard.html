@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BI数据仪表板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-size: 12px;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #e2e8f0;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(30, 41, 59, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(71, 85, 105, 0.3);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .chart-container {
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid rgba(71, 85, 105, 0.4);
+        }
+
+        .chart-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        .chart-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #60a5fa;
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: 2px solid rgba(71, 85, 105, 0.5);
+            padding-bottom: 10px;
+            position: relative;
+        }
+
+        .chart-toggle {
+            position: absolute;
+            right: 0;
+            top: 0;
+            display: flex;
+            gap: 5px;
+        }
+
+        .toggle-btn {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            color: #93c5fd;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn:hover {
+            background: rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+        }
+
+        .toggle-btn.active {
+            background: #3b82f6;
+            color: #ffffff;
+            border-color: #3b82f6;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 350px;
+        }
+
+        .bottom-section {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 25px;
+        }
+
+        .department-chart {
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(71, 85, 105, 0.4);
+        }
+
+        .hr-chart {
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(71, 85, 105, 0.4);
+        }
+
+        .department-chart .chart-wrapper {
+            height: 350px;
+        }
+
+        .hr-chart .chart-wrapper {
+            height: 350px;
+        }
+
+        /* 弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: rgba(30, 41, 59, 0.98);
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            animation: modalSlideIn 0.3s ease;
+            border: 1px solid rgba(71, 85, 105, 0.4);
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .close {
+            color: #94a3b8;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: #60a5fa;
+        }
+
+        .modal-title {
+            color: #60a5fa;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .detail-table th,
+        .detail-table td {
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            padding: 12px;
+            text-align: left;
+            font-size: 12px;
+        }
+
+        .detail-table th {
+            background-color: rgba(51, 65, 85, 0.8);
+            font-weight: bold;
+            color: #60a5fa;
+        }
+
+        .detail-table tr:nth-child(even) {
+            background-color: rgba(51, 65, 85, 0.4);
+        }
+
+        .detail-table tr:hover {
+            background-color: rgba(59, 130, 246, 0.2);
+        }
+
+        .detail-table td {
+            color: #e2e8f0;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: repeat(4, 1fr);
+            }
+            
+            .bottom-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+                padding: 20px;
+            }
+        }
+
+        .table-wrapper {
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ranking-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(30, 58, 138, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        .ranking-table th {
+            background: rgba(59, 130, 246, 0.4);
+            color: #e2e8f0;
+            padding: 8px 6px;
+            text-align: left;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            position: relative;
+        }
+
+        .ranking-table th[data-sort="bonus"],
+        .ranking-table th[data-sort="payment"] {
+            text-align: right;
+        }
+
+        .ranking-table th:hover {
+            background: rgba(59, 130, 246, 0.6);
+        }
+
+        .ranking-table th.active::after {
+            content: '';
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 3px solid transparent;
+            border-right: 3px solid transparent;
+        }
+
+        .ranking-table th[data-sort="bonus"].active::after,
+        .ranking-table th[data-sort="payment"].active::after {
+            right: 15px;
+        }
+
+        .ranking-table th.active.asc::after {
+            border-bottom: 5px solid #e2e8f0;
+        }
+
+        .ranking-table th.active.desc::after {
+            border-top: 5px solid #e2e8f0;
+        }
+
+        .ranking-table td {
+            padding: 6px 6px;
+            border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+            color: #cbd5e1;
+            text-align: left;
+        }
+
+        .ranking-table td:nth-child(2),
+        .ranking-table td:nth-child(3) {
+            text-align: right;
+        }
+
+        .ranking-table tr:nth-child(even) {
+            background: rgba(30, 58, 138, 0.2);
+        }
+
+        .ranking-table tr:hover {
+            background: rgba(59, 130, 246, 0.3);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 8px 0;
+            border-top: 1px solid rgba(71, 85, 105, 0.3);
+        }
+
+        .page-btn {
+            background: rgba(59, 130, 246, 0.3);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            color: #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: rgba(59, 130, 246, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            color: #94a3b8;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-grid">
+            <!-- 奖金回款统计 -->
+            <div class="chart-container">
+                <div class="chart-title">奖金回款统计</div>
+                <div class="chart-wrapper">
+                    <canvas id="combinedBonusPaymentChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 绩效总览与部门统计 -->
+            <div class="chart-container">
+                <div class="chart-title">
+                    <span id="performanceTitle">绩效总览</span>
+                    <div class="chart-toggle">
+                        <button class="toggle-btn active" data-type="overview">总览</button>
+                        <button class="toggle-btn" data-type="department">部门</button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="combinedPerformanceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- HR统计 -->
+            <div class="chart-container">
+                <div class="chart-title">HR统计</div>
+                <div class="chart-wrapper">
+                    <canvas id="hrChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 奖金排行榜 -->
+            <div class="chart-container">
+                <div class="chart-title">
+                    排行榜
+                </div>
+                <div class="table-wrapper">
+                    <table id="rankingTable" class="ranking-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="name">姓名</th>
+                                <th data-sort="bonus" class="active desc">奖金(元)</th>
+                                <th data-sort="payment">回款(万元)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rankingTableBody">
+                        </tbody>
+                    </table>
+                    <div class="pagination">
+                        <button id="prevPage" class="page-btn" disabled>上一页</button>
+                        <span id="pageInfo" class="page-info">1 / 1</span>
+                        <button id="nextPage" class="page-btn" disabled>下一页</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹窗模态框 -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 class="modal-title" id="modalTitle"></h2>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let charts = {};
+        
+        // Chart.js默认配置 - 深色模式
+        Chart.defaults.color = '#e2e8f0';
+        Chart.defaults.font.size = 12;
+        Chart.defaults.borderColor = 'rgba(71, 85, 105, 0.3)';
+        Chart.defaults.backgroundColor = 'rgba(71, 85, 105, 0.1)';
+        
+        // 模拟数据
+        const mockData = {
+            performance: {
+                A: { count: 25, percentage: 25 },
+                B: { count: 35, percentage: 35 },
+                C: { count: 28, percentage: 28 },
+                D: { count: 12, percentage: 12 }
+            },
+            bonusPayment: {
+                months: ['1月', '2月', '3月', '4月', '5月', '6月'],
+                bonusAmounts: [120.00, 150.00, 180.00, 200.00, 170.00, 220.00], // 奖金金额(万元)
+                paymentAmounts: [800.00, 950.00, 1200.00, 1100.00, 1300.00, 1450.00], // 回款金额(万元)
+                totalPersonnel: [100, 100, 100, 100, 100, 100], // 总人数
+                bonusPersonnel: [25, 30, 35, 40, 32, 45], // 获奖人数
+                paymentPersonnel: [60, 65, 70, 68, 75, 80] // 回款人数
+            },
+            departments: {
+                labels: Array.from({length: 20}, (_, i) => `销售部S${i+1}`),
+                data: Array.from({length: 20}, () => ({
+                    A: Math.floor(Math.random() * 15) + 5,
+                    B: Math.floor(Math.random() * 20) + 10,
+                    C: Math.floor(Math.random() * 15) + 5,
+                    D: Math.floor(Math.random() * 8) + 2
+                }))
+            },
+            hr: {
+                categories: ['业务人数', '增员/月', '减员/月', '晋级/月', '降级/月', '培训/月'],
+                values: [150, 12, 8, 15, 3, 6],
+                colors: ['#1e40af', '#3b82f6', '#60a5fa', '#10b981', '#059669', '#065f46']
+            },
+            bonusRanking: {
+                bonus: [
+                    { name: '张伟', amount: 15800, department: '销售部S1', position: '销售经理' },
+                    { name: '李娜', amount: 14200, department: '销售部S3', position: '高级销售' },
+                    { name: '王强', amount: 13600, department: '销售部S2', position: '销售经理' },
+                    { name: '刘敏', amount: 12900, department: '销售部S5', position: '高级销售' },
+                    { name: '陈杰', amount: 12400, department: '销售部S1', position: '销售专员' },
+                    { name: '杨柳', amount: 11800, department: '销售部S4', position: '高级销售' },
+                    { name: '赵磊', amount: 11300, department: '销售部S2', position: '销售专员' },
+                    { name: '孙霞', amount: 10900, department: '销售部S6', position: '销售经理' },
+                    { name: '周涛', amount: 10500, department: '销售部S3', position: '销售专员' },
+                    { name: '吴雪', amount: 10200, department: '销售部S7', position: '高级销售' }
+                ],
+                payment: [
+                    { name: '王强', amount: 89600, department: '销售部S2', position: '销售经理' },
+                    { name: '李娜', amount: 87200, department: '销售部S3', position: '高级销售' },
+                    { name: '张伟', amount: 85400, department: '销售部S1', position: '销售经理' },
+                    { name: '陈杰', amount: 82800, department: '销售部S1', position: '销售专员' },
+                    { name: '孙霞', amount: 79300, department: '销售部S6', position: '销售经理' },
+                    { name: '刘敏', amount: 76500, department: '销售部S5', position: '高级销售' },
+                    { name: '杨柳', amount: 74200, department: '销售部S4', position: '高级销售' },
+                    { name: '周涛', amount: 71800, department: '销售部S3', position: '销售专员' },
+                    { name: '赵磊', amount: 69400, department: '销售部S2', position: '销售专员' },
+                    { name: '吴雪', amount: 67100, department: '销售部S7', position: '高级销售' }
+                ]
+            }
+        };
+
+        // 员工详情模拟数据
+        const employeeDetails = {
+            generateEmployeeData: (count, grade = null) => {
+                const employees = [];
+                const names = ['张伟', '李娜', '王强', '刘敏', '陈杰', '杨柳', '赵磊', '孙霞', '周涛', '吴雪', '郑豪', '王丽', '李勇', '陈静', '张峰'];
+                const departments = ['销售部S1', '销售部S2', '销售部S3', '销售部S4', '销售部S5'];
+                const positions = ['销售经理', '高级销售', '销售专员', '业务代表'];
+                
+                for (let i = 0; i < count; i++) {
+                    employees.push({
+                        name: names[Math.floor(Math.random() * names.length)] + (i > 14 ? i : ''),
+                        department: departments[Math.floor(Math.random() * departments.length)],
+                        position: positions[Math.floor(Math.random() * positions.length)],
+                        grade: grade || ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)],
+                        score: (Math.random() * 40 + 60).toFixed(1),
+                        bonus: (Math.random() * 5000 + 2000).toFixed(0)
+                    });
+                }
+                return employees;
+            },
+            
+            generateTrainingData: (count) => {
+                const trainings = [];
+                const topics = ['销售技巧提升', '客户关系管理', '产品知识培训', '沟通技能训练', '团队协作培训', '市场分析方法'];
+                const instructors = ['李教授', '王老师', '张专家', '陈顾问', '刘讲师'];
+                
+                for (let i = 0; i < count; i++) {
+                    trainings.push({
+                        topic: topics[Math.floor(Math.random() * topics.length)],
+                        date: `2024-0${Math.floor(Math.random() * 6) + 1}-${Math.floor(Math.random() * 28) + 1}`,
+                        instructor: instructors[Math.floor(Math.random() * instructors.length)],
+                        duration: `${Math.floor(Math.random() * 4) + 2}小时`,
+                        participants: Math.floor(Math.random() * 30) + 20,
+                        location: `培训室${Math.floor(Math.random() * 5) + 1}`
+                    });
+                }
+                return trainings;
+            }
+        };
+
+        // 初始化所有图表
+        function initCharts() {
+            initCombinedBonusPaymentChart();
+            initCombinedPerformanceChart();
+            initHRChart();
+            initRankingTable();
+        }
+
+        // 合并后的奖金回款统计图表
+        function initCombinedBonusPaymentChart() {
+            const ctx = document.getElementById('combinedBonusPaymentChart').getContext('2d');
+            
+            charts.combinedBonusPayment = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: mockData.bonusPayment.months,
+                    datasets: [
+                        // 折线图 - 奖金金额
+                        {
+                            type: 'line',
+                            label: '奖金金额(万元)',
+                            data: mockData.bonusPayment.bonusAmounts,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            yAxisID: 'y1',
+                            order: 0,
+                            tension: 0,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#3b82f6',
+                            pointBorderWidth: 0,
+                            borderWidth: 2
+                        },
+                        // 折线图 - 回款金额
+                        {
+                            type: 'line',
+                            label: '回款金额(万元)',
+                            data: mockData.bonusPayment.paymentAmounts,
+                            borderColor: '#1e40af',
+                            backgroundColor: 'rgba(30, 64, 175, 0.1)',
+                            yAxisID: 'y1',
+                            order: 1,
+                            tension: 0,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#1e40af',
+                            pointBorderWidth: 0,
+                            borderWidth: 2
+                        },
+                        // 堆叠柱状图 - 回款人数 (底部)
+                        {
+                            type: 'bar',
+                            label: '未回款人数',
+                            data: mockData.bonusPayment.months.map((_, index) => 
+                                mockData.bonusPayment.totalPersonnel[index] - mockData.bonusPayment.paymentPersonnel[index]
+                            ),
+                            backgroundColor: 'rgba(59, 130, 246, 0.3)',
+                            yAxisID: 'y',
+                            order: 2,
+                            stack: 'payment',
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.8,
+                            borderWidth: 0
+                        },
+                        // 堆叠柱状图 - 回款人数 (顶部)
+                        {
+                            type: 'bar',
+                            label: '回款人数',
+                            data: mockData.bonusPayment.paymentPersonnel,
+                            backgroundColor: '#10b981',
+                            yAxisID: 'y',
+                            order: 3,
+                            stack: 'payment',
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.8,
+                            borderWidth: 0
+                        },
+                        // 堆叠柱状图 - 未获奖人数 (底部)
+                        {
+                            type: 'bar',
+                            label: '未获奖人数',
+                            data: mockData.bonusPayment.months.map((_, index) => 
+                                mockData.bonusPayment.totalPersonnel[index] - mockData.bonusPayment.bonusPersonnel[index]
+                            ),
+                            backgroundColor: 'rgba(30, 64, 175, 0.3)',
+                            yAxisID: 'y',
+                            order: 4,
+                            stack: 'bonus',
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.8,
+                            borderWidth: 0
+                        },
+                        // 堆叠柱状图 - 获奖人数 (顶部)
+                        {
+                            type: 'bar',
+                            label: '获奖人数',
+                            data: mockData.bonusPayment.bonusPersonnel,
+                            backgroundColor: '#60a5fa',
+                            yAxisID: 'y',
+                            order: 5,
+                            stack: 'bonus',
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.8,
+                            borderWidth: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 11
+                                },
+                                color: '#e2e8f0',
+                                filter: function(item, chart) {
+                                    // 隐藏"未回款人数"和"未获奖人数"图例，只显示主要数据
+                                    return !item.text.includes('未');
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#3b82f6',
+                            bodyColor: '#e2e8f0',
+                            borderColor: 'rgba(59, 130, 246, 0.5)',
+                            borderWidth: 1,
+                            callbacks: {
+                                afterBody: function(tooltipItems) {
+                                    const index = tooltipItems[0].dataIndex;
+                                    const month = mockData.bonusPayment.months[index];
+                                    const bonusAmount = mockData.bonusPayment.bonusAmounts[index];
+                                    const paymentAmount = mockData.bonusPayment.paymentAmounts[index];
+                                    const totalPersonnel = mockData.bonusPayment.totalPersonnel[index];
+                                    const bonusPersonnel = mockData.bonusPayment.bonusPersonnel[index];
+                                    const paymentPersonnel = mockData.bonusPayment.paymentPersonnel[index];
+                                    
+                                    return [
+                                        `${month}数据概览:`,
+                                        `奖金总额: ${bonusAmount.toFixed(2)}万元`,
+                                        `回款总额: ${paymentAmount.toFixed(2)}万元`,
+                                        `总人数: ${totalPersonnel}人`,
+                                        `获奖人数: ${bonusPersonnel}人 (${((bonusPersonnel/totalPersonnel)*100).toFixed(1)}%)`,
+                                        `回款人数: ${paymentPersonnel}人 (${((paymentPersonnel/totalPersonnel)*100).toFixed(1)}%)`,
+                                        '点击可查看详细信息'
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 12
+                                },
+                                color: '#e2e8f0'
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: '人数',
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                },
+                                color: '#e2e8f0'
+                            },
+                            grid: {
+                                color: 'rgba(59, 130, 246, 0.3)'
+                            },
+                            ticks: {
+                                color: '#e2e8f0',
+                                stepSize: 20
+                            },
+                            stacked: true
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: '金额(万元)',
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                },
+                                color: '#e2e8f0'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                            ticks: {
+                                color: '#e2e8f0'
+                            }
+                        }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const element = elements[0];
+                            const index = element.index;
+                            const datasetIndex = element.datasetIndex;
+                            const month = mockData.bonusPayment.months[index];
+                            
+                            if (datasetIndex <= 1) {
+                                // 点击折线图 - 显示该月综合数据
+                                const bonusCount = mockData.bonusPayment.bonusPersonnel[index];
+                                const paymentCount = mockData.bonusPayment.paymentPersonnel[index];
+                                const totalCount = Math.max(bonusCount, paymentCount, 30);
+                                showEmployeeDetails(`${month}综合业绩详情`, employeeDetails.generateEmployeeData(totalCount));
+                            } else if (datasetIndex === 3 || datasetIndex === 5) {
+                                // 点击获奖或回款柱体
+                                if (datasetIndex === 5) {
+                                    // 获奖人数柱体
+                                    const count = mockData.bonusPayment.bonusPersonnel[index];
+                                    showEmployeeDetails(`${month}奖金获得者详情`, employeeDetails.generateEmployeeData(count));
+                                } else {
+                                    // 回款人数柱体
+                                    const count = mockData.bonusPayment.paymentPersonnel[index];
+                                    showEmployeeDetails(`${month}回款人员详情`, employeeDetails.generateEmployeeData(count));
+                                }
+                            }
+                        }
+                    },
+                    onHover: (event, elements) => {
+                        const canvas = event.native.target;
+                        canvas.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+                    }
+                }
+            });
+        }
+
+        // 当前排行榜类型和绩效图表类型
+        let currentRankingType = 'bonus';
+        let currentPerformanceType = 'overview';
+
+        // 合并后的绩效统计图表
+        function initCombinedPerformanceChart() {
+            const ctx = document.getElementById('combinedPerformanceChart').getContext('2d');
+            
+            charts.performance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [],
+                        borderColor: [],
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                font: {
+                                    size: 12
+                                },
+                                color: '#e2e8f0'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#3b82f6',
+                            bodyColor: '#e2e8f0',
+                            borderColor: 'rgba(59, 130, 246, 0.5)',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    if (currentPerformanceType === 'overview') {
+                                        const label = context.label;
+                                        const value = context.parsed;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return `${label}: ${value}人 (${percentage}%)`;
+                                    }
+                                    return context.label + ': ' + context.parsed;
+                                }
+                            }
+                        }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            
+                            if (currentPerformanceType === 'overview') {
+                                // 饼图模式：点击扇形显示对应等级人员详情
+                                const grades = ['A', 'B', 'C', 'D'];
+                                const grade = grades[index];
+                                const totalA = mockData.departments.data.reduce((sum, dept) => sum + dept.A, 0);
+                                const totalB = mockData.departments.data.reduce((sum, dept) => sum + dept.B, 0);
+                                const totalC = mockData.departments.data.reduce((sum, dept) => sum + dept.C, 0);
+                                const totalD = mockData.departments.data.reduce((sum, dept) => sum + dept.D, 0);
+                                const counts = [totalA, totalB, totalC, totalD];
+                                const count = counts[index];
+                                showEmployeeDetails(`${grade}级绩效人员详情`, employeeDetails.generateEmployeeData(count, grade));
+                            } else {
+                                // 柱状图模式：点击部门显示部门详情
+                                const labels = [...mockData.departments.labels, '总计'];
+                                if (index === labels.length - 1) {
+                                    const totalA = mockData.departments.data.reduce((sum, dept) => sum + dept.A, 0);
+                                    const totalB = mockData.departments.data.reduce((sum, dept) => sum + dept.B, 0);
+                                    const totalC = mockData.departments.data.reduce((sum, dept) => sum + dept.C, 0);
+                                    const totalD = mockData.departments.data.reduce((sum, dept) => sum + dept.D, 0);
+                                    const totalCount = totalA + totalB + totalC + totalD;
+                                    showEmployeeDetails('绩效总览详情', employeeDetails.generateEmployeeData(totalCount));
+                                } else {
+                                    const department = mockData.departments.labels[index];
+                                    const deptData = mockData.departments.data[index];
+                                    const totalCount = deptData.A + deptData.B + deptData.C + deptData.D;
+                                    showEmployeeDetails(`${department}个人绩效详情`, employeeDetails.generateEmployeeData(totalCount));
+                                }
+                            }
+                        }
+                    },
+                    onHover: (event, elements) => {
+                        const canvas = event.native.target;
+                        canvas.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+                    }
+                }
+            });
+            
+            // 初始加载绩效总览
+            updatePerformanceChart('overview');
+        }
+
+        // 更新绩效图表
+        function updatePerformanceChart(type) {
+            currentPerformanceType = type;
+            
+            if (type === 'overview') {
+                // 切换到饼图模式 - 绩效总览
+                charts.performance.config.type = 'pie';
+                
+                // 计算总计数据
+                const totalA = mockData.departments.data.reduce((sum, dept) => sum + dept.A, 0);
+                const totalB = mockData.departments.data.reduce((sum, dept) => sum + dept.B, 0);
+                const totalC = mockData.departments.data.reduce((sum, dept) => sum + dept.C, 0);
+                const totalD = mockData.departments.data.reduce((sum, dept) => sum + dept.D, 0);
+                
+                charts.performance.data.labels = ['A级绩效', 'B级绩效', 'C级绩效', 'D级绩效'];
+                charts.performance.data.datasets = [{
+                    data: [totalA, totalB, totalC, totalD],
+                    backgroundColor: ['#1e40af', '#3b82f6', '#60a5fa', '#93c5fd'],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }];
+                
+                // 更新饼图选项
+                charts.performance.options = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                font: {
+                                    size: 12
+                                },
+                                color: '#e2e8f0'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#3b82f6',
+                            bodyColor: '#e2e8f0',
+                            borderColor: 'rgba(59, 130, 246, 0.5)',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label;
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value}人 (${percentage}%)`;
+                                },
+                                afterBody: function(tooltipItems) {
+                                    const total = totalA + totalB + totalC + totalD;
+                                    return [`总人数: ${total}人`, '点击查看详细信息'];
+                                }
+                            }
+                        }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const grades = ['A', 'B', 'C', 'D'];
+                            const grade = grades[index];
+                            const counts = [totalA, totalB, totalC, totalD];
+                            const count = counts[index];
+                            showEmployeeDetails(`${grade}级绩效人员详情`, employeeDetails.generateEmployeeData(count, grade));
+                        }
+                    },
+                    onHover: (event, elements) => {
+                        const canvas = event.native.target;
+                        canvas.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+                    }
+                };
+                
+            } else {
+                // 切换到柱状图模式 - 部门绩效统计（移除总计）
+                charts.performance.config.type = 'bar';
+                
+                const aData = mockData.departments.data.map(d => d.A);
+                const bData = mockData.departments.data.map(d => d.B);
+                const cData = mockData.departments.data.map(d => d.C);
+                const dData = mockData.departments.data.map(d => d.D);
+                
+                // 不添加总计数据
+                const labels = mockData.departments.labels;
+                
+                charts.performance.data.labels = labels;
+                charts.performance.data.datasets = [
+                    {
+                        label: 'A级人员',
+                        data: aData,
+                        backgroundColor: '#1e40af',
+                        borderWidth: 0
+                    },
+                    {
+                        label: 'B级人员',
+                        data: bData,
+                        backgroundColor: '#3b82f6',
+                        borderWidth: 0
+                    },
+                    {
+                        label: 'C级人员',
+                        data: cData,
+                        backgroundColor: '#60a5fa',
+                        borderWidth: 0
+                    },
+                    {
+                        label: 'D级人员',
+                        data: dData,
+                        backgroundColor: '#93c5fd',
+                        borderWidth: 0
+                    }
+                ];
+                
+                // 更新柱状图选项
+                charts.performance.options = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#e2e8f0',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#3b82f6',
+                            bodyColor: '#e2e8f0',
+                            borderColor: 'rgba(59, 130, 246, 0.5)',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: {
+                                color: 'rgba(59, 130, 246, 0.3)'
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                color: '#e2e8f0',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: '人员数量',
+                                color: '#e2e8f0',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(59, 130, 246, 0.3)'
+                            },
+                            ticks: {
+                                color: '#e2e8f0'
+                            }
+                        }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const department = mockData.departments.labels[index];
+                            const deptData = mockData.departments.data[index];
+                            const totalCount = deptData.A + deptData.B + deptData.C + deptData.D;
+                            showEmployeeDetails(`${department}个人绩效详情`, employeeDetails.generateEmployeeData(totalCount));
+                        }
+                    },
+                    onHover: (event, elements) => {
+                        const canvas = event.native.target;
+                        canvas.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+                    }
+                };
+            }
+            
+            // 重新渲染图表
+            charts.performance.update('none'); // 使用'none'模式快速切换
+            
+            // 更新标题
+            document.getElementById('performanceTitle').textContent = type === 'overview' ? '绩效总览' : '部门绩效统计';
+            
+            // 更新按钮状态
+            document.querySelectorAll('[data-type="overview"], [data-type="department"]').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.type === type) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // 5. HR统计柱状图
+        function initHRChart() {
+            const ctx = document.getElementById('hrChart').getContext('2d');
+            
+            charts.hr = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: mockData.hr.categories,
+                    datasets: [{
+                        data: mockData.hr.values,
+                        backgroundColor: mockData.hr.colors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#3b82f6',
+                            bodyColor: '#e2e8f0',
+                            borderColor: 'rgba(59, 130, 246, 0.5)',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(59, 130, 246, 0.3)'
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                color: '#e2e8f0',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: '数量',
+                                color: '#e2e8f0',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(59, 130, 246, 0.3)'
+                            },
+                            ticks: {
+                                color: '#e2e8f0'
+                            }
+                        }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const category = mockData.hr.categories[index];
+                            const value = mockData.hr.values[index];
+                            
+                            if (category === '培训/月') {
+                                showTrainingDetails('培训通知信息', employeeDetails.generateTrainingData(value));
+                            } else {
+                                showEmployeeDetails(`${category}人员详情`, employeeDetails.generateEmployeeData(value));
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 排行榜数据
+        const rankingData = [
+            { name: '张三', bonus: 158000.00, payment: 120.50 },
+            { name: '李四', bonus: 142000.00, payment: 98.30 },
+            { name: '王五', bonus: 139000.00, payment: 135.70 },
+            { name: '赵六', bonus: 125000.00, payment: 89.20 },
+            { name: '钱七', bonus: 118000.00, payment: 156.40 },
+            { name: '孙八', bonus: 113000.00, payment: 78.90 },
+            { name: '周九', bonus: 107000.00, payment: 167.20 },
+            { name: '吴十', bonus: 102000.00, payment: 145.80 },
+            { name: '郑一', bonus: 98000.00, payment: 123.60 },
+            { name: '王二', bonus: 95000.00, payment: 98.70 },
+            { name: '李三', bonus: 91000.00, payment: 187.30 },
+            { name: '张四', bonus: 89000.00, payment: 92.40 },
+            { name: '赵五', bonus: 86000.00, payment: 176.90 },
+            { name: '钱六', bonus: 83000.00, payment: 134.20 },
+            { name: '孙七', bonus: 80000.00, payment: 154.70 },
+            { name: '周八', bonus: 78000.00, payment: 112.80 },
+            { name: '吴九', bonus: 75000.00, payment: 189.50 },
+            { name: '郑十', bonus: 72000.00, payment: 165.30 },
+            { name: '王一一', bonus: 69000.00, payment: 143.60 },
+            { name: '李二二', bonus: 66000.00, payment: 127.90 },
+        ];
+
+        // 分页变量
+        let currentPage = 1;
+        let pageSize = 10;
+        let sortField = 'bonus';
+        let sortOrder = 'desc';
+
+        // 初始化排行榜表格
+        function initRankingTable() {
+            renderTable();
+            initTableEvents();
+        }
+
+        // 排序数据
+        function sortData(data) {
+            return [...data].sort((a, b) => {
+                let aValue = a[sortField];
+                let bValue = b[sortField];
+                
+                if (sortField === 'name') {
+                    // 中文姓名排序
+                    return sortOrder === 'asc' ? aValue.localeCompare(bValue, 'zh-CN') : bValue.localeCompare(aValue, 'zh-CN');
+                } else {
+                    // 数值排序
+                    return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+                }
+            });
+        }
+
+        // 获取分页数据
+        function getPageData() {
+            const sortedData = sortData(rankingData);
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            return sortedData.slice(start, end);
+        }
+
+        // 渲染表格
+        function renderTable() {
+            const tableBody = document.getElementById('rankingTableBody');
+            const pageData = getPageData();
+            
+            tableBody.innerHTML = pageData.map(item => `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>${item.bonus.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</td>
+                    <td>${item.payment.toFixed(2)}</td>
+                </tr>
+            `).join('');
+            
+            updatePagination();
+            updateSortHeaders();
+        }
+
+        // 更新分页信息
+        function updatePagination() {
+            const totalPages = Math.ceil(rankingData.length / pageSize);
+            const pageInfo = document.getElementById('pageInfo');
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+            
+            pageInfo.textContent = `${currentPage} / ${totalPages}`;
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+        }
+
+        // 更新排序标题样式
+        function updateSortHeaders() {
+            const headers = document.querySelectorAll('.ranking-table th');
+            headers.forEach(th => {
+                th.classList.remove('active', 'asc', 'desc');
+                if (th.dataset.sort === sortField) {
+                    th.classList.add('active', sortOrder);
+                }
+            });
+        }
+
+        // 初始化表格事件
+        function initTableEvents() {
+            // 排序事件
+            document.querySelectorAll('.ranking-table th[data-sort]').forEach(th => {
+                th.addEventListener('click', () => {
+                    const field = th.dataset.sort;
+                    if (sortField === field) {
+                        sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortField = field;
+                        sortOrder = field === 'bonus' ? 'desc' : 'asc'; // 奖金默认降序，其他升序
+                    }
+                    currentPage = 1; // 重置到第一页
+                    renderTable();
+                });
+            });
+
+            // 分页事件
+            document.getElementById('prevPage').addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderTable();
+                }
+            });
+
+            document.getElementById('nextPage').addEventListener('click', () => {
+                const totalPages = Math.ceil(rankingData.length / pageSize);
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderTable();
+                }
+            });
+        }
+
+        // 显示员工详情弹窗
+        function showEmployeeDetails(title, employees) {
+            const modal = document.getElementById('detailModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            
+            modalTitle.textContent = title;
+            
+            let tableHtml = `
+                <table class="detail-table">
+                    <thead>
+                        <tr>
+                            <th>姓名</th>
+                            <th>部门</th>
+                            <th>绩效等级</th>
+                            <th>绩效分数</th>
+                            <th>奖金(元)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            employees.forEach(emp => {
+                tableHtml += `
+                    <tr>
+                        <td>${emp.name}</td>
+                        <td>${emp.department}</td>
+                        <td><span style="color: ${getGradeColor(emp.grade)}; font-weight: bold;">${emp.grade}级</span></td>
+                        <td>${emp.score}</td>
+                        <td>¥${emp.bonus}</td>
+                    </tr>
+                `;
+            });
+            
+            tableHtml += '</tbody></table>';
+            modalBody.innerHTML = tableHtml;
+            
+            modal.style.display = 'block';
+        }
+
+        // 显示培训详情弹窗
+        function showTrainingDetails(title, trainings) {
+            const modal = document.getElementById('detailModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            
+            modalTitle.textContent = title;
+            
+            let tableHtml = `
+                <table class="detail-table">
+                    <thead>
+                        <tr>
+                            <th>培训主题</th>
+                            <th>培训日期</th>
+                            <th>讲师</th>
+                            <th>培训时长</th>
+                            <th>参与人数</th>
+                            <th>培训地点</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            trainings.forEach(training => {
+                tableHtml += `
+                    <tr>
+                        <td>${training.topic}</td>
+                        <td>${training.date}</td>
+                        <td>${training.instructor}</td>
+                        <td>${training.duration}</td>
+                        <td>${training.participants}人</td>
+                        <td>${training.location}</td>
+                    </tr>
+                `;
+            });
+            
+            tableHtml += '</tbody></table>';
+            modalBody.innerHTML = tableHtml;
+            
+            modal.style.display = 'block';
+        }
+
+        // 获取绩效等级颜色
+        function getGradeColor(grade) {
+            const colors = {
+                'A': '#1e40af',
+                'B': '#3b82f6',
+                'C': '#60a5fa',
+                'D': '#93c5fd'
+            };
+            return colors[grade] || '#94a3b8';
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.getElementById('detailModal').style.display = 'none';
+        }
+
+        // 事件监听器
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+            
+            // 弹窗关闭事件
+            document.querySelector('.close').addEventListener('click', closeModal);
+            
+            window.addEventListener('click', function(event) {
+                const modal = document.getElementById('detailModal');
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+            
+            // 排行榜切换事件
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const type = this.dataset.type;
+                    
+                    // 判断是排行榜切换还是绩效图表切换
+                    if (type === 'bonus' || type === 'payment') {
+                        updateRankingTable();
+                    } else if (type === 'overview' || type === 'department') {
+                        updatePerformanceChart(type);
+                    }
+                });
+            });
+        });
+
+        // 响应式调整
+        window.addEventListener('resize', function() {
+            Object.values(charts).forEach(chart => {
+                if (chart) {
+                    chart.resize();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
